@@ -1,0 +1,31 @@
+{
+  "preview_size": 1400,
+  "tile_size": 1024,
+  "outer_inset": 8.0,
+  "outer_rim_max": 24.0,
+  "central_gap_close": 2.0,
+  "central_gap_max": 8.0,
+  "inner_buffer_fraction": 0.025,
+  "background_radius": 12.0,
+  "background_smooth": 4.0,
+  "ridge_sigmas": [
+    0.5,
+    1.0,
+    2.0,
+    4.0
+  ],
+  "ridge_beta": 0.5,
+  "ridge_gamma": 0.06,
+  "ridge_threshold": 0.12,
+  "intensity_floor": 0.06,
+  "otsu_multiplier": 0.65,
+  "noise_multiplier": 4.0,
+  "recovery_radius": 3.0,
+  "max_half_width": 8.0,
+  "blob_intensity": 0.65,
+  "min_component_area": 6.0,
+  "min_elongation": 2.5,
+  "min_network_extent": 35.0,
+  "rejection_warning": 0.6,
+  "sensitivity_warning": 0.15
+}

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tunnel-analysis"
+version = "0.2.0"
+description = "Reproducible measurement of visible burrowing tunnel area"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26", "scipy>=1.12", "scikit-image>=0.24", "tifffile>=2024.2", "pillow>=10"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+tunnel-analysis = "tunnel_analysis.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
