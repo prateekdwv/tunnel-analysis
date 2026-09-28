@@ -41,7 +41,8 @@ def fake_worker(monkeypatch):
         Image.new('RGB',(32,32),'green').save(destination / overlay)
         record = {'input':str(source),'input_sha256':sha256(source),
                   'status':'provisional','tunnel_area_px':64,'analysis_region_area_px':1024,
-                  'tunnel_area_percent':6.25,'quality_flags':[], 'overlay':overlay, 'masks':{}}
+                  'tunnel_area_percent':6.25,'arena_area_px':1024,
+                  'measurement_rule_version':'arena-coverage-v1','quality_flags':[], 'overlay':overlay, 'masks':{}}
         with zipfile.ZipFile(destination/'audit.zip','w') as archive:
             for name,mask in [('tunnels',np.pad(np.ones((8,8),np.uint8),12)),
                               ('analysis_region',np.ones((32,32),np.uint8))]:
@@ -82,6 +83,11 @@ def test_resumed_and_uninterrupted_results_and_sources_match(inputs,tmp_path,fak
     assert (out/'results.csv').read_bytes()==(direct/'results.csv').read_bytes()
     assert (out/'comparison.png').read_bytes()==(direct/'comparison.png').read_bytes()
     assert data['batch']['artifacts']['comparison.png']==sha256(out/'comparison.png')
+    with zipfile.ZipFile(out/'audit.zip') as archive:
+        assert 'figures/comparison.svg' in archive.namelist()
+        metadata=json.loads(archive.read('figures/comparison.json'))
+        assert metadata['rows'][0]['coverage_percent']==6.25
+        assert hashlib.sha256(archive.read('figures/comparison.svg')).hexdigest()==data['batch']['figure']['sha256']
     for index in range(2):
         np.testing.assert_array_equal(audit_mask(out,image_index=index),audit_mask(direct,image_index=index))
     assert before=={p.name:sha256(p) for p in inputs.iterdir() if p.is_file()}

@@ -1,8 +1,8 @@
-# Methodology: visible tunnel area, central-tunnels-v1
+# Methodology: visible tunnel coverage, arena-coverage-v1
 
 ## Measurement definition
 
-The measured quantity is the number of native-resolution pixels occupied by accepted visible bright tunnel material within a defined analysis region. Branches, loops, and junctions count throughout the arena, including the central interior. Dark gaps between tunnel walls, rejected debris, supported inner-rim material, and outer rim bands do not count. Dark central pixels remain in the analysis-region denominator, but contribute no tunnel area. This quantity does not measure tunnel length, lumen area, excavated volume, or physical area without independent calibration.
+The measured quantity is the number of native-resolution pixels occupied by accepted visible bright tunnel material within a defined analysis region. Branches, loops, and junctions count throughout the arena, including the central interior. Dark gaps between tunnel walls, rejected debris, supported inner-rim material, and outer rim bands do not count. All observed pixels within the fitted arena, including dark central pixels and artifact locations, remain in the coverage denominator. Rejected artifacts and dark pixels contribute no tunnel area. This quantity does not measure tunnel length, lumen area, excavated volume, or physical area without independent calibration.
 
 The procedure is automatic and deterministic. The shared settings in `config.json` apply to all images. Independent biological reference masks have not yet been supplied; results remain provisional. [VALIDATION.md](VALIDATION.md) records synthetic accuracy, real-image checks, sensitivity, and performance.
 
@@ -25,9 +25,9 @@ Let `D` denote the equivalent diameter of the fitted outer arena in native pixel
 7. Use the median start and end plus a guard of `max(1 preview pixel, 0.001D)` to define a narrow rim band. Preserve angles where foreground extends radially on either side of the rim: require at least 65% foreground over a neighbouring interval twice the typical rim width. Pad protected angles by the guard converted to angle using the smaller ellipse radius. Missing and protected angles are not excluded. This can retain some rim pixels at genuine branch junctions.
 8. Evaluate that band at native pixel centres using the preview-to-native coordinate transform, independent of tile boundaries. Exclude only supported angles of this band. Never fill the central interior or apply the former `0.025D` buffer. Morphological closing is only for proposing geometry and never adds measured pixels.
 
-The usable region `R` is the arena after its outer-rim exclusion, minus the supported narrow inner-rim band if detected. The central interior is always eligible. A detected rim receives `inner_rim_exclusion_requires_review`; otherwise the analysis continues with `inner_rim_not_identified_review_centre`. Non-detection is not confirmation of absence. A smooth central tunnel loop can resemble a rim, and partial, irregular, or branch-interrupted rims can remain unremoved. These limitations require visual review and expert validation.
+The segmentation-eligibility region `R` is the arena after its outer-rim exclusion, minus the supported narrow inner-rim band if detected. This determines where tunnel pixels can be accepted, but is not the coverage denominator. The central interior is always eligible. A detected rim receives `inner_rim_exclusion_requires_review`; otherwise the analysis continues with `inner_rim_not_identified_review_centre`. Non-detection is not confirmation of absence. A smooth central tunnel loop can resemble a rim, and partial, irregular, or branch-interrupted rims can remain unremoved. These limitations require visual review and expert validation.
 
-This rule replaces the earlier buffered central-opening definition. It changes both numerator and denominator; regenerate all samples for a comparison under one frozen revision. Historical buffered-centre outputs remain valid records of their original definition and are not interchangeable with revised measurements.
+This rule replaces the earlier buffered central-opening definition. The central-tunnels-v1 revision changed both numerator and denominator. The current arena-coverage-v1 revision preserves that segmentation and changes normalization to the full fitted arena; regenerate all samples for a comparison under one frozen revision. Historical buffered-centre outputs remain valid records of their original definition and are not interchangeable with revised measurements.
 
 ## Background and foreground candidates
 
@@ -80,13 +80,17 @@ Apply global 8-connected component filtering after continuity repair. Remove com
 
 ```text
 Tunnel_area_px = sum(final_mask)
-Analysis_region_area_px = sum(R)
-Tunnel_area_percent = 100 × Tunnel_area_px / Analysis_region_area_px
+A = observed native pixel centres inside the fitted outer ellipse (normalized radius < 1)
+Arena_area_px = sum(A)
+Analysis_region_area_px = Arena_area_px  # compatibility alias
+Tunnel_area_percent = 100 × Tunnel_area_px / Arena_area_px
 ```
+
+The denominator A includes the centre, dark spaces, and locations of rejected inner/outer rim material or debris. It is independent of the angular rim cutoffs and segmentation decisions. It is rasterized in bounded native-resolution strips; no pixels beyond the image are extrapolated. Estimate missing fraction as `max(0, 1 − Arena_area_px / (πab))`, where a and b are native ellipse radii. The analytic ellipse area is only a cropping diagnostic, never the denominator. If this fraction exceeds `arena_missing_fraction_warning = 0.005`, flag `arena_boundary_clipped_review_coverage`; retain the observed-region value in the CSV for diagnosis but omit it from the comparison graph. Boundary identification is an image-based approximation of the experimental surface, not a physical calibration.
 
 Each intersection pixel counts once. No skeleton length or filled tunnel footprint is substituted for area. Independent physical x/y pixel sizes could later convert pixel area by their product; the current output is in pixels.
 
-Default image/folder results consist of one CSV, one labeled overlay per input, and one audit ZIP. Resumable batch results also include a two-panel comparison PNG generated from the CSV. Green overlay pixels show accepted foreground, orange shows rejected candidates, and blue shows exclusions. Reduced previews use maximum occupancy to keep thin structures visible; exact native 0/1 tunnel and region masks are archived. Intermediate files are temporary. Diagnostic images and annotation crops require explicit output directories outside the results.
+Default image/folder results consist of one CSV, one labeled overlay per input, and one audit ZIP. Resumable batch results also include a single-panel coverage PNG generated from the CSV. Green overlay pixels show accepted foreground, orange shows rejected candidates, and blue shows exclusions. Reduced previews use maximum occupancy to keep thin structures visible; exact native 0/1 tunnel, full-arena denominator (`analysis_region`), and segmentation-eligibility (`segmentation_region`) masks are archived. The white overlay boundary shows the denominator arena; blue rim exclusions affect the numerator, not the denominator. Intermediate files are temporary. Diagnostic images and annotation crops require explicit output directories outside the results.
 
 The audit includes image and code checksums, mask checksums, full/effective parameters, detected geometry, versions, UTC start time, worker runtime, peak RSS, flags, and sensitivity. Folder processing uses fresh sequential workers. Per-image runtime includes analysis, sensitivity and worker audit compression; it excludes the batch archive merge.
 
@@ -102,7 +106,7 @@ Earlier settings were developed using synthetic tests and visual inspection of t
 
 ## Draft text for a biology paper
 
-> Visible tunnel-network area was quantified from native-resolution TIFF images using a Python workflow. Genuine tunnels were eligible throughout the arena, including its central region. A conservative geometric detector proposed smooth inner-rim exclusions using angular foreground support and branch-continuity checks; absent or ambiguous central boundaries did not prevent measurement and were flagged for review. Outer rim bands were excluded. Following background correction, intensity thresholding and multiscale Hessian ridge evidence identified candidate tunnel material. Local branch-continuity and width criteria retained connecting branches and junctions while reducing compact debris. Area was calculated from accepted native pixels and expressed as a percentage of the eligible analysis region. Overlays, masks, parameters, and provenance were archived. Classification sensitivity was assessed by jointly varying intensity and ridge thresholds by ±10%. Independent expert validation is required to establish biological segmentation accuracy.
+> Visible tunnel-network area was quantified from native-resolution TIFF images using a Python workflow. Genuine tunnels were eligible throughout the arena, including its central region. A conservative geometric detector proposed smooth inner-rim exclusions using angular foreground support and branch-continuity checks; absent or ambiguous central boundaries did not prevent measurement and were flagged for review. Outer rim bands were excluded. Following background correction, intensity thresholding and multiscale Hessian ridge evidence identified candidate tunnel material. Local branch-continuity and width criteria retained connecting branches and junctions while reducing compact debris. Area was calculated from accepted native pixels and expressed as a percentage of the observed area inside the fitted arena. The normalization region included the central interior and was independent of artifact rejection. Overlays, masks, parameters, and provenance were archived. Classification sensitivity was assessed by jointly varying intensity and ridge thresholds by ±10%. Independent expert validation is required to establish biological segmentation accuracy.
 
 Add actual expert-validation results and physical calibration only after those steps are completed.
 
@@ -113,3 +117,7 @@ Add actual expert-validation results and physical calibration only after those s
 - [SciPy Gaussian derivatives](https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html) and [Euclidean distance transforms](https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.distance_transform_edt.html).
 - [tifffile scientific TIFF support](https://github.com/cgohlke/tifffile).
 - [NumPy citation guidance](https://numpy.org/citing-numpy/).
+
+## Figure export
+
+The batch comparison shows a horizontal bar per image with a zero-based linear percentage axis. Matplotlib renders a 7.1-inch-wide, 300-dpi PNG and an editable SVG archived under `figures/`. Font size and figure height are chosen for readable labels. Failed/invalid values and flagged cropped arenas have labeled rows without bars. Exact plotting values, axis limits, original filenames and simplified display labels, and a draft caption are archived. PNG and SVG checksums are verified at completion/resume. No pixel-area panel, replicate confidence intervals, or significance tests are displayed. The CSV records the rule identifier `arena-coverage-v1` to prevent old percentages being mislabeled as full-arena coverage.

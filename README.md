@@ -22,8 +22,9 @@ Open **[results/results.csv](results/results.csv)** for the measurements and the
 |---|---|
 | Green | Accepted tunnel pixels that contribute to area |
 | Orange | Foreground pixels rejected from the measurement |
-| Blue | Supported inner-rim band, outer rim, and outside background |
-| Pale blue boundary | Edge of the usable analysis region |
+| Blue | Excluded from the tunnel count; rim exclusions remain in the coverage denominator |
+| Pale blue boundary | Edge of the region eligible for tunnel segmentation |
+| White boundary | Fitted arena used for the coverage denominator |
 
 Each overlay includes the filename, area, percentage coverage, and a legend. It is always saved. The image is a display preview: reduced masks preserve visibility of thin lines, so apparent preview widths must not be used for measuring area.
 
@@ -39,17 +40,18 @@ results/
 ```
 
 - `tunnel_area_px`: number of accepted native-resolution pixels.
-- `analysis_region_area_px`: usable arena area after the narrow rim exclusions; the central interior is included.
-- `tunnel_area_percent`: `100 × tunnel_area_px / analysis_region_area_px`.
+- `arena_area_px`: number of observed native pixels inside the fitted arena, including the centre and rim-artifact locations.
+- `analysis_region_area_px`: compatibility alias for `arena_area_px`; its meaning changed in `arena-coverage-v1`.
+- `tunnel_area_percent`: `100 × tunnel_area_px / arena_area_px`.
 - `status` and `notes`: provisional status and any review flags. A failed measurement has no area value.
 
-**The centre is eligible for measurement.** A missing or irregular inner rim no longer makes a measurement fail. Only a narrow, strongly supported smooth rim is excluded; the old 2.5%-diameter central buffer is removed. Genuine central tunnel pixels use the same foreground/branch checks as the rest of the arena. Dark central pixels add no tunnel area but remain part of the analysis-region denominator.
+**The centre is eligible for measurement.** A missing or irregular inner rim no longer makes a measurement fail. Only a narrow, strongly supported smooth rim is excluded; the old 2.5%-diameter central buffer is removed. Genuine central tunnel pixels use the same foreground/branch checks as the rest of the arena. Dark central pixels add no tunnel area but remain part of the arena denominator. Artifact rejection never shrinks that denominator.
 
 The detector requires support near an ellipse over at least 85% of angular samples and protects radial branch connections. It cannot distinguish every circular tunnel from a rim artifact or identify all irregular remnants. Every result flags either `inner_rim_exclusion_requires_review` or `inner_rim_not_identified_review_centre`; the latter **does not confirm that the rim is absent**. In the three local biological previews, this conservative detector did not confidently identify an inner rim. Review is still needed before making biological comparisons.
 
-This is a changed measurement definition (`central-tunnels-v1` in the audit), so rerun all comparison images together in a **new run**. Existing results and checkpoints retain their original rule and must not be mixed with new results. Old configurations containing `inner_buffer_fraction` are rejected; use the revised `config.json` or a historical code revision with its original settings. Do not resume an older run to apply the new rule.
+This is a changed measurement definition (`arena-coverage-v1` in the CSV and audit), so rerun all comparison images together in a **new run**. Existing results and checkpoints retain their original rule and must not be mixed with new results. Old configurations containing `inner_buffer_fraction` are rejected; use the revised `config.json` or a historical code revision with its original settings. Do not resume an older run to apply the new rule.
 
-`audit.zip` holds exact 0/1 TIFF masks (`tunnels.tif` and `analysis_region.tif`) under `images/<input filename>/`, and a `run.json` with configuration, image/code/mask checksums, software versions, geometry, timing, memory use, and sensitivity results. Extract a mask and set its display range to 0–1 in ImageJ/Fiji if it appears black. Intermediate analysis files are temporary and are not left in the results.
+`audit.zip` holds exact 0/1 TIFF masks (`tunnels.tif`, `analysis_region.tif` for the full arena denominator, and `segmentation_region.tif` for eligibility after rim exclusions) under `images/<input filename>/`, and a `run.json` with configuration, image/code/mask checksums, software versions, geometry, timing, memory use, and sensitivity results. Extract a mask and set its display range to 0–1 in ImageJ/Fiji if it appears black. Intermediate analysis files are temporary and are not left in the results.
 
 The old development outputs are preserved in [archive/previous-development-results.zip](archive/previous-development-results.zip). The input TIFFs are unchanged.
 
@@ -168,23 +170,21 @@ Supported inputs are single-page unsigned 8-bit or 16-bit grayscale or interleav
 
 Spatial parameters scale with arena diameter. Pixel areas from different resolutions cannot be directly compared as physical areas. TIFF DPI is metadata, not specimen calibration.
 
-The program uses CPU processing, overlapping tiles, and disk-backed intermediates. Temporary storage is approximately 16 bytes per source pixel with sensitivity enabled, plus temporary compressed archives. Allow around 1.5 GB of working disk space for the largest supplied image. Set `TMPDIR` to choose the temporary disk. Final masks compress into `audit.zip`; GPU and trained-model dependencies are not required.
+The program uses CPU processing, overlapping tiles, and disk-backed intermediates. Temporary storage is approximately 17 bytes per source pixel with sensitivity enabled, plus temporary compressed archives. Allow around 1.5 GB of working disk space for the largest supplied image. Set `TMPDIR` to choose the temporary disk. Final masks compress into `audit.zip`; GPU and trained-model dependencies are not required.
 
 ### Batch comparison graph
 
-Each completed batch also saves `comparison.png`, generated directly from `results.csv`
-and displayed in the notebook. Two horizontal bar panels show percentage coverage of
-the usable analysis region and tunnel area in pixels, in input filename order. Both
-scales start at zero; values and per-image statuses are labeled. Failed or invalid
-measurements have no bar. Each bar represents one image, without error bars.
-Biological accuracy remains provisional. Pixel areas are directly comparable only
-when specimen scale and image resolution match; coverage does not remove other
-experimental differences.
+Each completed batch saves a single-panel `comparison.png`: visible tunnel coverage as a percentage of the fitted arena. The pixel-area panel has been removed. Pixel counts remain in the CSV and audit.
 
-The graph uses the existing Pillow dependency and does not load TIFFs or masks. Its
-checksum is recorded in the batch audit and checked on resume. Existing single-image
-and legacy folder commands retain their output layout. For four input images, batch
-results contain seven files: CSV, graph, four overlays, and audit ZIP.
+- **Denominator:** every observed native pixel inside the fitted arena ellipse. Inner and outer rim rejection, debris rejection, and tunnel thresholds do not shrink it. The centre is included. The numerator retains the existing segmentation and rim-rejection rules.
+- **Presentation:** horizontal blue bars, white background, readable bundled DejaVu Sans fonts, restrained gridlines, direct percentage labels, and a linear axis starting at zero. The upper limit rounds up to a readable tick above the data, capped at 100%; separate runs may use different upper limits, so consult the ticks when comparing charts.
+- **Sample labels:** omit TIFF extensions and DPI tokens and replace underscores with spaces. Original filenames are preserved in CSV/audit. Colliding display labels retain identifying filenames. No filename-specific colours or inferred group assignments are used.
+- **Missing values:** failed or invalid measurements have a labeled row without a bar; zero is a valid measured value. An estimated missing arena fraction above 0.5% (`arena_missing_fraction_warning`) is flagged, and its observed-area percentage is omitted from the comparison chart pending review. The audit records `arena_estimated_missing_fraction = max(0, 1 − observed arena pixels / fitted ellipse area)`; the 0.5% review tolerance allows minor fit/rasterization discrepancies and is not a biological validation threshold. No missing area is extrapolated as zero tunnels. The arena fit is an image-based approximation of the experimental surface and should be checked against the white overlay outline.
+- **Export:** PNG at 300 dpi, 7.1 inches wide (2,130 pixels), with height adapted to sample count and label wrapping. `audit.zip` additionally contains an editable vector `figures/comparison.svg` and `figures/comparison.json` with the caption, label mapping, plotted values, axis limits, and rendering version. The SVG can be scaled for a journal layout without raster blur.
+- **Interpretation:** each bar is one image, without biological replicate error bars or significance tests. Measurements remain provisional pending independent validation. Coverage normalizes image area but cannot correct lost fine detail, washing damage, or inconsistent specimen preparation.
 
-The notebook defaults to `/content/drive/MyDrive/tunnel-quant/priority` for inputs
-and `/content/drive/MyDrive/tunnel-quant/Results` for new run folders.
+The graph uses Matplotlib, imported only during final batch assembly, and never reads source TIFFs or masks. Its PNG and archived SVG checksums are verified on resume. The final output layout remains compact: for four images, seven files (CSV, PNG chart, four overlays, audit ZIP). The notebook displays the PNG and explains where to find the vector version.
+
+Historical CSVs cannot simply be redrawn under the new axis label: their percentages used different denominators. Start a new run with all comparison images to apply `arena-coverage-v1`; do not resume an earlier run for that purpose. Original runs remain untouched.
+
+The notebook defaults to `/content/drive/MyDrive/tunnel-quant/priority` for inputs and `/content/drive/MyDrive/tunnel-quant/Results` for new run folders.

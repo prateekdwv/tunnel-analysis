@@ -30,5 +30,6 @@
   "inner_rim_intensity": 0.12,
   "inner_rim_fit_tolerance": 0.003,
   "inner_rim_max_width": 0.012,
-  "inner_rim_min_support": 0.85
+  "inner_rim_min_support": 0.85,
+  "arena_missing_fraction_warning": 0.005
 }

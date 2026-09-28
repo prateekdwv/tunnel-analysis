@@ -7,7 +7,7 @@ name = "tunnel-analysis"
 version = "0.2.0"
 description = "Reproducible measurement of visible burrowing tunnel area"
 requires-python = ">=3.11"
-dependencies = ["numpy>=1.26", "scipy>=1.12", "scikit-image>=0.24", "tifffile>=2024.2", "pillow>=10"]
+dependencies = ["numpy>=1.26", "scipy>=1.12", "scikit-image>=0.24", "tifffile>=2024.2", "pillow>=10", "matplotlib>=3.9"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]

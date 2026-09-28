@@ -184,3 +184,14 @@ def tile_fields(geometry, native_shape, y0, y1, x0, x1, config, native_gray=None
     inner = rim_mask(coords[1], coords[0], geometry.details["inner_rim_model"])
     region = outer_region(xx,yy,geometry.center_x,geometry.center_y,geometry.radius_x,geometry.radius_y,geometry.angle,geometry.outer_cutoffs) & ~inner
     return region, background
+
+
+def arena_tile(geometry, y0, y1, x0, x1):
+    """Denominator mask: observed native pixel centres inside the fitted arena.
+
+    Independent of inner/outer rim cutoffs, candidate masks, and classification.
+    Cropping is flagged separately; no unseen pixels are extrapolated.
+    """
+    yy, xx = np.ogrid[y0:y1, x0:x1]
+    return ellipse_radius(xx, yy, geometry.center_x, geometry.center_y,
+                          geometry.radius_x, geometry.radius_y, geometry.angle) < 1

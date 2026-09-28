@@ -195,6 +195,10 @@ def completed_batch(output):
             raise BatchError('This folder is not a completed resumable batch')
         if archive.testzip() is not None:
             raise BatchError('Final audit archive is corrupt')
+        if batch.get('figure'):
+            entry = batch['figure']
+            if hashlib.sha256(archive.read(entry['archive_path'])).hexdigest() != entry['sha256']:
+                raise BatchError('Archived comparison figure checksum mismatch')
         for record in data['results']:
             for entry in record.get('masks', {}).values():
                 with archive.open(entry['archive_path']) as stream:
@@ -248,10 +252,14 @@ def assemble(state, checkpoints, destination, scratch):
             local_checkpoint.unlink()
             (scratch / 'image-audit.zip').unlink()
         write_summary(records, destination / 'results.csv')
-        save_comparison(destination / 'results.csv', destination / 'comparison.png')
+        vector = scratch / 'comparison.svg'
+        figure_metadata = save_comparison(destination / 'results.csv', destination / 'comparison.png', vector)
+        final.write(vector, 'figures/comparison.svg')
+        final.writestr('figures/comparison.json', json.dumps(figure_metadata, indent=2) + '\n')
         batch = {key: value for key, value in state.items() if key != 'checkpoints'}
         batch.update(status='complete_with_failures' if any(r['status']=='failed' for r in records) else 'complete',
                      completed_utc=utc_now(),
+                     figure={'archive_path': 'figures/comparison.svg', 'sha256': sha256(vector)},
                      artifacts={p.name: sha256(p) for p in destination.iterdir() if p.name != 'audit.zip'})
         data = manifest(records) | {'batch': batch}
         final.writestr('run.json', json.dumps(data, indent=2) + '\n')

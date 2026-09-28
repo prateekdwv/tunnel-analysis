@@ -12,6 +12,7 @@ import math
 class Config:
     preview_size: int = 1400
     tile_size: int = 1024
+    arena_missing_fraction_warning: float = 0.005
     outer_inset: float = 8.0
     outer_rim_max: float = 24.0
     central_gap_close: float = 2.0
@@ -51,7 +52,7 @@ class Config:
                 raise ValueError(f"{f.name} must be finite and positive")
         if not self.ridge_sigmas or any(not math.isfinite(s) or s <= 0 for s in self.ridge_sigmas):
             raise ValueError("ridge_sigmas must contain positive finite numbers")
-        for name in ("ridge_threshold", "intensity_floor", "blob_intensity", "inner_rim_intensity", "inner_rim_fit_tolerance", "inner_rim_max_width", "inner_rim_min_support", "rejection_warning", "sensitivity_warning"):
+        for name in ("arena_missing_fraction_warning", "ridge_threshold", "intensity_floor", "blob_intensity", "inner_rim_intensity", "inner_rim_fit_tolerance", "inner_rim_max_width", "inner_rim_min_support", "rejection_warning", "sensitivity_warning"):
             if getattr(self, name) >= 1:
                 raise ValueError(f"{name} must be less than 1")
         if self.central_gap_max < self.central_gap_close or self.outer_rim_max < self.outer_inset:

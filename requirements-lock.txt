@@ -1,16 +1,24 @@
 # Tested environment: Python 3.14.2, Linux x86_64. Install the local project separately with pip install -e .
+contourpy==1.4.0
+cycler==0.12.1
+fonttools==4.66.0
 ImageIO==2.37.4
 iniconfig==2.3.0
+kiwisolver==1.5.1
 lazy-loader==0.6
+matplotlib==3.11.2
 networkx==3.7
 numpy==2.5.3
 packaging==26.3
 pillow==12.3.0
 pluggy==1.6.0
 Pygments==2.21.0
+pyparsing==3.3.3
 pytest==9.1.1
+python-dateutil==2.9.0.post0
 scikit-image==0.26.0
 scipy==1.18.1
 setuptools==84.0.0
+six==1.17.0
 tifffile==2026.9.20
 wheel==0.48.0

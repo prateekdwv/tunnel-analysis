@@ -20,7 +20,7 @@ import tifffile
 from . import __version__
 from .config import Config
 from .io import InputImage, sha256
-from .regions import estimate_geometry, RegionError
+from .regions import estimate_geometry, RegionError, arena_tile
 from .segmentation import feature_maps, segment, counts, release_pages
 from .report import save_previews, export_crops, write_contact_sheet, save_overlay
 
@@ -49,7 +49,7 @@ def check_destinations(output, debug_dir=None, validation_dir=None):
 
 
 def manifest(results):
-    return {"format_version":3,"measurement_rule_version":"central-tunnels-v1","measurement":"visible tunnel foreground throughout the arena, excluding supported inner rim material and outer rim band",
+    return {"format_version":4,"measurement_rule_version":"arena-coverage-v1","measurement":"visible tunnel foreground throughout the arena, excluding supported inner rim material and outer rim band; coverage denominator is the fitted arena within the image",
             "results":results}
 
 
@@ -72,6 +72,8 @@ def run_image(path, output, config=None, sensitivity=True, progress=None,
                   "versions":{name:importlib.metadata.version(name) for name in ("numpy","scipy","scikit-image","tifffile","pillow")},
                   "software_version":__version__,"python":platform.python_version(),"platform":platform.platform(),
                   "quality_flags":[],"area_unit":"pixel","sensitivity":None,
+                  "measurement_rule_version":"arena-coverage-v1",
+                  "coverage_denominator":"all observed native pixels inside the fitted arena; no rim subtraction",
                   "overlay":overlay_name(path)}
         image = InputImage(path)
         result["image"] = image.metadata
@@ -101,14 +103,24 @@ def run_image(path, output, config=None, sensitivity=True, progress=None,
                     corrected,ridges = feature_maps(image,geometry,config,scratch,progress)
                     maps.extend([corrected,ridges])
                     masks = {}
-                    for name in ("analysis_region","foreground_candidates","tunnels"):
+                    for name in ("analysis_region","segmentation_region","foreground_candidates","tunnels"):
                         masks[name] = tifffile.memmap(scratch/f"{name}.tif",shape=image.shape,dtype=np.uint8,photometric="minisblack")
                         maps.append(masks[name])
                     if progress:
                         progress("Preserving branch connections and rejecting unsupported patches")
                     result["components"] = segment(corrected,ridges,geometry,config,scratch,masks["tunnels"],
-                        masks["foreground_candidates"],masks["analysis_region"],source=image)
+                        masks["foreground_candidates"],masks["segmentation_region"],source=image)
+                    for y in range(0, image.shape[0], 256):
+                        y1 = min(y+256, image.shape[0])
+                        masks["analysis_region"][y:y1] = arena_tile(geometry, y, y1, 0, image.shape[1])
+                    result["segmentation_region_area_px"] = int(np.count_nonzero(masks["segmentation_region"]))
                     result.update(counts(masks["tunnels"],masks["analysis_region"],masks["foreground_candidates"]))
+                    # Analytic ellipse area is a cropping diagnostic only;
+                    # the denominator remains the observed exact pixel count.
+                    missing = max(0., 1-result["arena_area_px"]/(np.pi*geometry.radius_x*geometry.radius_y))
+                    result["arena_estimated_missing_fraction"] = float(missing)
+                    if missing > config.arena_missing_fraction_warning:
+                        result["quality_flags"].append("arena_boundary_clipped_review_coverage")
                     if result["rejected_fraction"] > config.rejection_warning:
                         result["quality_flags"].append("large_foreground_rejection")
                     if result["tunnel_area_px"] == 0:
@@ -130,19 +142,19 @@ def run_image(path, output, config=None, sensitivity=True, progress=None,
                             result["quality_flags"].append("threshold_sensitive")
                     if progress:
                         progress("Saving overlay and compressed audit masks")
-                    save_overlay(staging/result["overlay"],preview,masks["tunnels"],masks["foreground_candidates"],masks["analysis_region"],result)
+                    save_overlay(staging/result["overlay"],preview,masks["tunnels"],masks["foreground_candidates"],masks["segmentation_region"],result,arena=masks["analysis_region"])
                     if debug_dir:
                         debug = Path(debug_dir)
                         debug.mkdir(parents=True)
-                        save_previews(debug,image,preview,geometry,config,corrected,ridges,masks["tunnels"],masks["foreground_candidates"],masks["analysis_region"])
+                        save_previews(debug,image,preview,geometry,config,corrected,ridges,masks["tunnels"],masks["foreground_candidates"],masks["segmentation_region"])
                         write_contact_sheet(debug)
                         for name,array in masks.items():
                             array.flush()
                             shutil.copyfile(scratch/f"{name}.tif",debug/f"{name}.tif")
                     if validation_dir:
-                        export_crops(validation_dir,image,preview,geometry,masks["tunnels"],masks["foreground_candidates"],masks["analysis_region"],result["input_sha256"],direct=True)
+                        export_crops(validation_dir,image,preview,geometry,masks["tunnels"],masks["foreground_candidates"],masks["segmentation_region"],result["input_sha256"],direct=True)
                     result["masks"] = {}
-                    for name in ("tunnels","analysis_region"):
+                    for name in ("tunnels","analysis_region","segmentation_region"):
                         masks[name].flush()
                         source = scratch/f"{name}.tif"
                         archive_path = f"images/{Path(path).name}/{name}.tif"
@@ -171,7 +183,7 @@ def run_image(path, output, config=None, sensitivity=True, progress=None,
 
 
 def write_summary(results,path):
-    fields = ["image","tunnel_area_px","analysis_region_area_px","tunnel_area_percent","status","notes"]
+    fields = ["image","tunnel_area_px","arena_area_px","analysis_region_area_px","tunnel_area_percent","status","measurement_rule_version","notes"]
     with open(path,"w",newline="") as stream:
         writer = csv.DictWriter(stream,fieldnames=fields)
         writer.writeheader()

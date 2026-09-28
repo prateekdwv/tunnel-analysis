@@ -231,7 +231,8 @@ def test_audit_and_overlay_use_the_final_mask(tmp_path):
         mask=tifffile.imread(io.BytesIO(content))
     assert np.count_nonzero(mask) == result["tunnel_area_px"]
     layer=save_overlay(tmp_path/"overlay.png",image.astype(np.float32)/255,mask,
-        tifffile.imread(debug/"foreground_candidates.tif"),audit_mask(out,"analysis_region"),result)
+        tifffile.imread(debug/"foreground_candidates.tif"),audit_mask(out,"segmentation_region"),result,
+        arena=audit_mask(out,"analysis_region"))
     np.testing.assert_array_equal(layer,mask>0)
     np.testing.assert_array_equal(np.asarray(Image.open(tmp_path/"overlay.png")),np.asarray(Image.open(out/"scene.tif_overlay.png")))
 

@@ -1,4 +1,16 @@
-# Validation report: central-tunnels-v1
+# Validation report: arena-coverage-v1
+
+## Current changes
+
+Coverage now divides accepted tunnel pixels by all observed native pixels inside the fitted outer ellipse. The centre and rim-artifact locations are included. Separate archived masks record the denominator and segmentation eligibility. The segmentation numerator is unchanged from central-tunnels-v1. An estimated missing arena fraction above 0.5% is flagged (the tolerance allows small boundary-fit/rasterization differences), and percentages for those images are omitted from the comparison graph rather than presented as full-arena coverage.
+
+The graph is now one coverage panel, with a zero-based axis, readable tick spacing and labels, and a single colour that does not imply biological groups. The batch saves a 300-dpi PNG plus editable SVG and caption/plotting metadata inside the audit. These are descriptive per-image figures, without replicate uncertainty estimates.
+
+**61 tests passed in 28.64 seconds** in the local Python 3.14 environment. Verification covers exact denominator counts, invariance to rim cutoffs, native tile agreement, mask/CSV/overlay consistency, graph scale and data mapping, invalid/failed values, vector export, checksum integrity, and batch recovery. The historical results that follow used different denominator definitions and must not be mixed with current coverage. No new biological-area measurements have been made for this revision.
+
+---
+
+# Historical validation: central-tunnels-v1
 
 ## Current implementation checks
 

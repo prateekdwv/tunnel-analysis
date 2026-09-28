@@ -11,7 +11,7 @@ from .io import png, resize_mask
 COLORS = {"accepted": (40,220,80),"rejected": (255,155,45),"excluded": (70,130,255)}
 
 
-def save_overlay(path,preview,mask,candidates,region,result):
+def save_overlay(path,preview,mask,candidates,region,result,arena=None):
     """Permanent labeled display preview; all colors derive from final masks."""
     shape = preview.shape
     accepted = small_mask(mask,shape)
@@ -20,6 +20,10 @@ def save_overlay(path,preview,mask,candidates,region,result):
     rgb = overlay(preview,accepted,foreground,usable)
     boundary = usable ^ ndi.binary_erosion(usable)
     rgb[boundary] = (160,190,255)
+    if arena is not None:
+        arena_preview = resize_mask(arena, shape)
+        arena_boundary = arena_preview ^ ndi.binary_erosion(arena_preview)
+        rgb[arena_boundary] = (255,255,255)
     width = max(900,shape[1])
     canvas = Image.new("RGB",(width,shape[0]+126),(20,23,30))
     canvas.paste(Image.fromarray(rgb),((width-shape[1])//2,126))
@@ -33,14 +37,14 @@ def save_overlay(path,preview,mask,candidates,region,result):
     if result["status"] == "failed":
         label = "FAILED — no area measured: "+result.get("error","processing failed")
     else:
-        label = f"Counted area: {result['tunnel_area_px']:,} pixels | {result['tunnel_area_percent']:.3f}% of usable region | Provisional"
+        label = f"Counted area: {result['tunnel_area_px']:,} pixels | {result['tunnel_area_percent']:.3f}% of arena | Provisional"
     draw.text((16,36),label,fill="white",font=small)
     x = 16
     for title,key in (("Counted","accepted"),("Rejected","rejected"),("Excluded","excluded")):
         draw.rectangle((x,64,x+16,80),fill=COLORS[key])
         draw.text((x+24,61),title,fill="white",font=small)
         x += 170
-    draw.text((16,94),"Display preview; exact masks in audit.zip. Centre included; supported rims excluded. Review centre.",
+    draw.text((16,94),"Display preview; exact masks in audit.zip. White outline: coverage arena. Blue: excluded from tunnel count.",
               fill=(205,210,220),font=small)
     canvas.save(path)
     return accepted
@@ -92,7 +96,7 @@ def save_previews(out,image,preview,geometry,config,corrected,ridges,mask,candid
     png(out/"07_final_tunnels.png",sm)
     png(out/"08_overlay.png",overlay(preview,sm,sc,sr))
     (out/"REVIEW.txt").write_text(
-        "Overlay: GREEN = accepted tunnel pixels; RED = rejected foreground; BLUE = excluded region.\n"
+        "Overlay: GREEN = accepted tunnel pixels; RED = rejected foreground; BLUE = excluded from tunnel count (not subtracted from the coverage denominator).\n"
         "Yellow lines mark the analysis-region boundary. Preview masks use maximum occupancy to keep thin lines visible.\n"
         "Inspect native TIFF masks and native crop overlays for exact boundaries and area.\n"
         "Area counts white network pixels only. Dark gaps between walls are not filled.\n"

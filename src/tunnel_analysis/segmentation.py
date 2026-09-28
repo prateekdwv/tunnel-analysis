@@ -238,7 +238,7 @@ def counts(mask,region,candidates):
     area = int(np.count_nonzero(mask))
     usable = int(np.count_nonzero(region))
     foreground = int(np.count_nonzero(candidates))
-    return {"tunnel_area_px":area,"analysis_region_area_px":usable,
+    return {"tunnel_area_px":area,"analysis_region_area_px":usable,"arena_area_px":usable,
             "tunnel_area_percent":100*area/usable if usable else None,
             "candidate_area_px":foreground,
             "rejected_fraction":1-area/foreground if foreground else 0.0}
