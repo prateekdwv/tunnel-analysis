@@ -2,6 +2,18 @@
 
 Measure visible white tunnel-network area in TIFF images, with one shared automatic workflow. Branches and junctions count; debris, the central opening and its surrounding band, and the outer rim are excluded. Dark spaces between tunnel walls remain uncounted.
 
+## Keep developing here; run on Google Drive when ready
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/prateekdwv/tunnel-analysis/blob/main/notebooks/Google_Drive_Analysis.ipynb)
+
+The [Colab notebook](notebooks/Google_Drive_Analysis.ipynb) launches the existing Python package. Keep editing and testing in VS Code Codespaces. When ready, commit and push the code and notebook to GitHub; the button above will work once the notebook is on `main`. This integration does not change the version 0.2.0 segmentation algorithm.
+
+In Colab, choose a CPU runtime, enter the mounted Drive input folder and results parent folder, authorize Drive, and run the cells. The notebook downloads `main` by default, resolves it to an exact Git commit, and installs it in an isolated local Python environment. An optional branch, tag, or commit can select another version. It prints the chosen commit and a unique run directory to keep for resuming.
+
+Each new run processes the TIFFs directly inside the input folder. Results go to a separate dated directory containing the CSV, permanent overlays, and audit ZIP. Editing or pushing code here does not change a running analysis. The notebook is manually started; it does not watch Drive for new uploads.
+
+The launcher and recovery behavior have been tested locally. Google authorization and execution in a hosted Colab runtime have **not** been tested yet; those steps are deferred until you are ready. [Google's documentation](https://research.google.com/colaboratory/faq.html) describes runtime limits and Drive access.
+
 ## Read the results
 
 Open **[results/results.csv](results/results.csv)** for the measurements and the **`*_overlay.png`** files beside it to check the segmentation.
@@ -66,6 +78,54 @@ tunnel-analysis . --output next-results --config config.json
 Choose a new output directory for each run. Existing results are not overwritten. `python -m tunnel_analysis` is equivalent to the installed command. Folder mode does not recurse. Each input runs in a fresh worker, which makes peak memory measurements independent across images.
 
 By default the analysis also repeats classification at 90% and 110% of both intensity and ridge thresholds. Add `--no-sensitivity` to skip these checks. All three supplied images were measured with the shared [config.json](config.json).
+
+## Resumable batches, locally or on mounted Drive
+
+The existing commands above remain available. The new batch command adds checkpoints and recovery, using ordinary filesystem paths so it can be tested here:
+
+```bash
+tunnel-analysis batch /path/to/photos --output /path/to/Results/run_001 --config config.json
+tunnel-analysis batch /path/to/photos --output /path/to/Results/run_001 --resume
+```
+
+Folder scanning is deterministic, includes `.tif` and `.tiff` regardless of extension case, and does not recurse. Each image is copied to local scratch storage and analyzed in a fresh worker. Original images are never modified. Specify an existing local `--scratch-dir` to choose working storage; the notebook uses `/content`, not Drive, for processing and intermediate files.
+
+On resume, omitted configuration and sensitivity options use the saved settings. Explicitly different options are rejected. Optional `--source-root /content/drive` records source locations such as `MyDrive/experiment/control.tif` in the audit; locally the default root is the input directory. Both absolute input locations and relative source paths are recorded, so keep folder locations unchanged when resuming.
+
+### Checkpoints and completed results
+
+During a run, verified per-image checkpoints and `state.json` are stored beside the final folder:
+
+```text
+Results/
+  .tunnel-checkpoints/
+    run_001/              # recovery data while the run is incomplete
+  run_001/                # final CSV, overlays, and audit.zip
+```
+
+The final folder is assembled after all images have been attempted. The audit is uploaded last as the completion record. Checkpoints are removed only after final files have been read back and verified. Do not delete recovery data during an interrupted run, and use only one active process/session per run. Partially published results are repaired from checkpoints on resume.
+
+- Completed images are reused only after source and checkpoint verification. Missing or damaged per-image checkpoints are rebuilt.
+- Changed file contents, added/removed TIFFs, different configuration, sensitivity settings, code, Git commit, Python, or dependency versions require a new run, or restoration of the original inputs/environment.
+- Source checksums require sequential reads of the original TIFFs at the start and end; staging also verifies the copied image. Resume still reads sources for verification, but valid completed images skip copying and analysis.
+- Unsupported images and failed region detection receive failed CSV rows and clearly labeled failure overlays. Remaining images continue. Such a finished batch is marked `complete_with_failures` and returns exit code 2. Corrected inputs require a new run.
+- Resuming an intact completed run verifies its artifacts and leaves them unchanged. Damaged completed results without checkpoints are preserved and reported as an error; choose a new run instead of overwriting them.
+
+The audit's `batch` section records completion status, the input list and checksums, configuration, sensitivity setting, source-root location, Git commit and dirty status, code checksum, Python version, and all installed dependency versions. Each image also records its original source path and checksum. A local run with uncommitted code remains resumable in that same unchanged environment, but cannot be reconstructed from GitHub by Colab.
+
+### Resuming in Colab
+
+Paste the complete saved run directory into **RESUME_RUN**, reconnect Drive, and run the notebook again. The notebook reads the saved input folder, fetches the original Git commit, and reinstalls the recorded dependency versions in a fresh environment. It requires the same Python version. If that environment is unavailable, keep the old run and start a new one. New-run folder, revision, and sensitivity fields are ignored when resuming.
+
+For new Colab runs, package dependencies are resolved for the hosted Python version and recorded in the audit. The existing `requirements-lock.txt` describes the local Python 3.14.2 environment and is not applied blindly to Colab. The analysis subprocess is isolated from packages already imported in the notebook kernel.
+
+Integration checks use synthetic images and local directories only:
+
+```bash
+pytest -q
+```
+
+They cover interruption, checkpoint damage, publication recovery, mismatched inputs/settings, failure continuation, native mask agreement, source preservation, and offline Git branch/tag/commit selection. No biological TIFF rerun, Drive connection, or GitHub push is needed for these tests.
 
 ## Optional diagnostics and expert validation
 

@@ -12,6 +12,8 @@ from .config import Config
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "batch":
+        return batch_command(argv[1:])
     if argv and argv[0] in ("compare","validate-crops","synthetic","write-config"):
         return utility(argv)
     parser = argparse.ArgumentParser(description="Measure visible white tunnel area in one TIFF or a folder of TIFFs.")
@@ -90,6 +92,32 @@ def main(argv=None):
     except (ValueError,OSError) as exc:
         print(f"Error: {exc}",file=sys.stderr)
         return 2
+
+
+def batch_command(argv):
+    parser = argparse.ArgumentParser(prog="tunnel-analysis batch",description="Run or resume a verified batch using local scratch storage.")
+    parser.add_argument("input",type=Path)
+    parser.add_argument("--output",required=True,type=Path)
+    parser.add_argument("--resume",action="store_true")
+    parser.add_argument("--config",type=Path)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--no-sensitivity",dest="sensitivity",action="store_false")
+    group.add_argument("--sensitivity",dest="sensitivity",action="store_true")
+    parser.set_defaults(sensitivity=None)
+    parser.add_argument("--source-root",type=Path,help="Root for audit source-relative paths, e.g. /content/drive")
+    parser.add_argument("--scratch-dir",type=Path,help="Existing local temporary-storage directory")
+    args = parser.parse_args(argv)
+    try:
+        from .batch import run_batch
+        result = run_batch(args.input,args.output,Config.read(args.config) if args.config else None,
+                           args.sensitivity,args.resume,args.source_root,args.scratch_dir)
+        return 2 if result['batch']['status'] == 'complete_with_failures' else 0
+    except (ValueError,OSError,KeyError,zipfile.BadZipFile) as exc:
+        print(f"Batch error: {exc}",file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:
+        print("Batch interrupted. Completed checkpoints are preserved; use --resume.",file=sys.stderr)
+        return 130
 
 
 def utility(argv):
