@@ -10,7 +10,7 @@ The [Colab notebook](notebooks/Google_Drive_Analysis.ipynb) launches the existin
 
 In Colab, choose a CPU runtime, enter the mounted Drive input folder and results parent folder, authorize Drive, and run the cells. The notebook downloads `main` by default, resolves it to an exact Git commit, and installs it in an isolated local Python environment. An optional branch, tag, or commit can select another version. It prints the chosen commit and a unique run directory to keep for resuming.
 
-Each new run processes the TIFFs directly inside the input folder. Results go to a separate dated directory containing the CSV, permanent overlays, and audit ZIP. Editing or pushing code here does not change a running analysis. The notebook is manually started; it does not watch Drive for new uploads.
+Each new run processes the TIFFs directly inside the input folder. Results go to a separate dated directory containing the CSV, comparison graph, permanent overlays, and audit ZIP. Editing or pushing code here does not change a running analysis. The notebook is manually started; it does not watch Drive for new uploads.
 
 The launcher and recovery behavior have been tested locally. Google authorization and execution in a hosted Colab runtime have **not** been tested yet; those steps are deferred until you are ready. [Google's documentation](https://research.google.com/colaboratory/faq.html) describes runtime limits and Drive access.
 
@@ -100,7 +100,7 @@ During a run, verified per-image checkpoints and `state.json` are stored beside 
 Results/
   .tunnel-checkpoints/
     run_001/              # recovery data while the run is incomplete
-  run_001/                # final CSV, overlays, and audit.zip
+  run_001/                # final CSV, comparison.png, overlays, and audit.zip
 ```
 
 The final folder is assembled after all images have been attempted. The audit is uploaded last as the completion record. Checkpoints are removed only after final files have been read back and verified. Do not delete recovery data during an interrupted run, and use only one active process/session per run. Partially published results are repaired from checkpoints on resume.
@@ -165,3 +165,22 @@ Supported inputs are single-page unsigned 8-bit or 16-bit grayscale or interleav
 Spatial parameters scale with arena diameter. Pixel areas from different resolutions cannot be directly compared as physical areas. TIFF DPI is metadata, not specimen calibration.
 
 The program uses CPU processing, overlapping tiles, and disk-backed intermediates. Temporary storage is approximately 16 bytes per source pixel with sensitivity enabled, plus temporary compressed archives. Allow around 1.5 GB of working disk space for the largest supplied image. Set `TMPDIR` to choose the temporary disk. Final masks compress into `audit.zip`; GPU and trained-model dependencies are not required.
+
+### Batch comparison graph
+
+Each completed batch also saves `comparison.png`, generated directly from `results.csv`
+and displayed in the notebook. Two horizontal bar panels show percentage coverage of
+the usable analysis region and tunnel area in pixels, in input filename order. Both
+scales start at zero; values and per-image statuses are labeled. Failed or invalid
+measurements have no bar. Each bar represents one image, without error bars.
+Biological accuracy remains provisional. Pixel areas are directly comparable only
+when specimen scale and image resolution match; coverage does not remove other
+experimental differences.
+
+The graph uses the existing Pillow dependency and does not load TIFFs or masks. Its
+checksum is recorded in the batch audit and checked on resume. Existing single-image
+and legacy folder commands retain their output layout. For four input images, batch
+results contain seven files: CSV, graph, four overlays, and audit ZIP.
+
+The notebook defaults to `/content/drive/MyDrive/tunnel-quant/priority` for inputs
+and `/content/drive/MyDrive/tunnel-quant/Results` for new run folders.

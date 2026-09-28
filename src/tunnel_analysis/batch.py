@@ -19,6 +19,7 @@ import time
 import uuid
 import zipfile
 
+from .comparison import save_comparison
 from .config import Config
 from .io import sha256
 from .pipeline import manifest, overlay_name, write_summary
@@ -247,6 +248,7 @@ def assemble(state, checkpoints, destination, scratch):
             local_checkpoint.unlink()
             (scratch / 'image-audit.zip').unlink()
         write_summary(records, destination / 'results.csv')
+        save_comparison(destination / 'results.csv', destination / 'comparison.png')
         batch = {key: value for key, value in state.items() if key != 'checkpoints'}
         batch.update(status='complete_with_failures' if any(r['status']=='failed' for r in records) else 'complete',
                      completed_utc=utc_now(),

@@ -76,10 +76,12 @@ def test_resumed_and_uninterrupted_results_and_sources_match(inputs,tmp_path,fak
     assert not checkpoints.exists()
     assert data['batch']['status']=='complete'
     assert [r['source_relative_path'] for r in data['results']]==['a photo.TIF','b photo.tiff']
-    assert len(list(out.iterdir()))==4
+    assert len(list(out.iterdir()))==5
     direct=tmp_path/'direct'
     batch.run_batch(inputs,direct,sensitivity=False,progress=lambda _:None)
     assert (out/'results.csv').read_bytes()==(direct/'results.csv').read_bytes()
+    assert (out/'comparison.png').read_bytes()==(direct/'comparison.png').read_bytes()
+    assert data['batch']['artifacts']['comparison.png']==sha256(out/'comparison.png')
     for index in range(2):
         np.testing.assert_array_equal(audit_mask(out,image_index=index),audit_mask(direct,image_index=index))
     assert before=={p.name:sha256(p) for p in inputs.iterdir() if p.is_file()}
@@ -140,7 +142,7 @@ def test_partial_publication_resumes_without_reanalysis(inputs,tmp_path,fake_wor
     monkeypatch.setattr(batch,'copy_verified',original)
     batch.run_batch(inputs,out,resume=True,progress=lambda _:None)
     assert len(calls)==2
-    assert len(list(out.iterdir()))==4
+    assert len(list(out.iterdir()))==5
     assert not batch.checkpoint_directory(out).exists()
 
 
@@ -180,7 +182,7 @@ def test_real_worker_and_failure_overlay_continue(tmp_path):
     assert data['results'][1]['source_relative_path']=='input/b good.tif'
     assert np.count_nonzero(audit_mask(out,image_index=1))==data['results'][1]['tunnel_area_px']
     assert all((out/(p.name+'_overlay.png')).exists() for p in inputs.iterdir())
-    assert len(list(out.iterdir()))==4
+    assert len(list(out.iterdir()))==5
     assert source_hashes==[sha256(p) for p in sorted(inputs.iterdir())]
     assert main(['batch',str(inputs),'--output',str(out),'--resume'])==2
     direct=tmp_path/'direct'
