@@ -1,18 +1,18 @@
 # Tunnel area analysis
 
-Measure visible white tunnel-network area in TIFF images, with one shared automatic workflow. Branches and junctions count; debris, the central opening and its surrounding band, and the outer rim are excluded. Dark spaces between tunnel walls remain uncounted.
+Measure visible white tunnel-network area in TIFF images, with one shared automatic workflow. Branches and junctions count, including genuine tunnels near the centre. Debris, supported smooth inner-rim material, and the outer rim are excluded. Dark spaces between tunnel walls remain uncounted.
 
 ## Keep developing here; run on Google Drive when ready
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/prateekdwv/tunnel-analysis/blob/main/notebooks/Google_Drive_Analysis.ipynb)
 
-The [Colab notebook](notebooks/Google_Drive_Analysis.ipynb) launches the existing Python package. Keep editing and testing in VS Code Codespaces. When ready, commit and push the code and notebook to GitHub; the button above will work once the notebook is on `main`. This integration does not change the version 0.2.0 segmentation algorithm.
+The [Colab notebook](notebooks/Google_Drive_Analysis.ipynb) launches the existing Python package. Keep editing and testing in VS Code Codespaces. When ready, commit and push the code and notebook to GitHub; the button above will work once the notebook is on `main`. The launcher runs the measurement rule in the selected commit. The current rule includes central tunnels; older commits used a buffered central exclusion.
 
 In Colab, choose a CPU runtime, enter the mounted Drive input folder and results parent folder, authorize Drive, and run the cells. The notebook downloads `main` by default, resolves it to an exact Git commit, and installs it in an isolated local Python environment. An optional branch, tag, or commit can select another version. It prints the chosen commit and a unique run directory to keep for resuming.
 
 Each new run processes the TIFFs directly inside the input folder. Results go to a separate dated directory containing the CSV, comparison graph, permanent overlays, and audit ZIP. Editing or pushing code here does not change a running analysis. The notebook is manually started; it does not watch Drive for new uploads.
 
-The launcher and recovery behavior have been tested locally. Google authorization and execution in a hosted Colab runtime have **not** been tested yet; those steps are deferred until you are ready. [Google's documentation](https://research.google.com/colaboratory/faq.html) describes runtime limits and Drive access.
+The launcher and recovery behavior have been tested locally. A user-reported Colab batch completed with three provisional measurements and one failed central-opening detection under the older rule. The revised central rule has not been validated on those four original TIFFs. [Google's documentation](https://research.google.com/colaboratory/faq.html) describes runtime limits and Drive access.
 
 ## Read the results
 
@@ -22,12 +22,12 @@ Open **[results/results.csv](results/results.csv)** for the measurements and the
 |---|---|
 | Green | Accepted tunnel pixels that contribute to area |
 | Orange | Foreground pixels rejected from the measurement |
-| Blue | Excluded central region, rim bands, and outside background |
+| Blue | Supported inner-rim band, outer rim, and outside background |
 | Pale blue boundary | Edge of the usable analysis region |
 
 Each overlay includes the filename, area, percentage coverage, and a legend. It is always saved. The image is a display preview: reduced masks preserve visibility of thin lines, so apparent preview widths must not be used for measuring area.
 
-A three-image run creates **exactly five files**:
+The legacy image/folder command creates five files for three images (the resumable `batch` command also saves `comparison.png`):
 
 ```text
 results/
@@ -39,17 +39,21 @@ results/
 ```
 
 - `tunnel_area_px`: number of accepted native-resolution pixels.
-- `analysis_region_area_px`: usable area after the central and outer exclusions.
+- `analysis_region_area_px`: usable arena area after the narrow rim exclusions; the central interior is included.
 - `tunnel_area_percent`: `100 × tunnel_area_px / analysis_region_area_px`.
 - `status` and `notes`: provisional status and any review flags. A failed measurement has no area value.
 
-**The inner exclusion is the detected opening plus an outward buffer equal to 2.5% of the arena diameter.** This applies to every image, including irregular openings. Branch portions inside that band are excluded; outward branches count from where they leave it.
+**The centre is eligible for measurement.** A missing or irregular inner rim no longer makes a measurement fail. Only a narrow, strongly supported smooth rim is excluded; the old 2.5%-diameter central buffer is removed. Genuine central tunnel pixels use the same foreground/branch checks as the rest of the arena. Dark central pixels add no tunnel area but remain part of the analysis-region denominator.
+
+The detector requires support near an ellipse over at least 85% of angular samples and protects radial branch connections. It cannot distinguish every circular tunnel from a rim artifact or identify all irregular remnants. Every result flags either `inner_rim_exclusion_requires_review` or `inner_rim_not_identified_review_centre`; the latter **does not confirm that the rim is absent**. In the three local biological previews, this conservative detector did not confidently identify an inner rim. Review is still needed before making biological comparisons.
+
+This is a changed measurement definition (`central-tunnels-v1` in the audit), so rerun all comparison images together in a **new run**. Existing results and checkpoints retain their original rule and must not be mixed with new results. Old configurations containing `inner_buffer_fraction` are rejected; use the revised `config.json` or a historical code revision with its original settings. Do not resume an older run to apply the new rule.
 
 `audit.zip` holds exact 0/1 TIFF masks (`tunnels.tif` and `analysis_region.tif`) under `images/<input filename>/`, and a `run.json` with configuration, image/code/mask checksums, software versions, geometry, timing, memory use, and sensitivity results. Extract a mask and set its display range to 0–1 in ImageJ/Fiji if it appears black. Intermediate analysis files are temporary and are not left in the results.
 
 The old development outputs are preserved in [archive/previous-development-results.zip](archive/previous-development-results.zip). The input TIFFs are unchanged.
 
-See [VALIDATION.md](VALIDATION.md) for checks on these images and [METHODOLOGY.md](METHODOLOGY.md) for the scientific method. **Biological accuracy remains provisional until compared with independent expert annotations.**
+See [VALIDATION.md](VALIDATION.md) for current checks and clearly separated historical results and [METHODOLOGY.md](METHODOLOGY.md) for the scientific method. **Biological accuracy remains provisional until compared with independent expert annotations.**
 
 ## Install and run
 
@@ -77,7 +81,7 @@ tunnel-analysis . --output next-results --config config.json
 
 Choose a new output directory for each run. Existing results are not overwritten. `python -m tunnel_analysis` is equivalent to the installed command. Folder mode does not recurse. Each input runs in a fresh worker, which makes peak memory measurements independent across images.
 
-By default the analysis also repeats classification at 90% and 110% of both intensity and ridge thresholds. Add `--no-sensitivity` to skip these checks. All three supplied images were measured with the shared [config.json](config.json).
+By default the analysis also repeats classification at 90% and 110% of both intensity and ridge thresholds. Add `--no-sensitivity` to skip these checks. Historical results used the older buffered-centre settings. The current shared settings are in [config.json](config.json).
 
 ## Resumable batches, locally or on mounted Drive
 

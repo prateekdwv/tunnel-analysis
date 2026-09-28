@@ -1,4 +1,7 @@
-"""All algorithm settings; lengths are pixels per 1,000 arena diameter pixels."""
+"""Algorithm settings. Most lengths use pixels per 1,000 arena diameter pixels.
+
+inner_rim_fit_tolerance and inner_rim_max_width are fractions of arena diameter.
+"""
 from dataclasses import asdict, dataclass, fields
 import json
 from pathlib import Path
@@ -13,7 +16,10 @@ class Config:
     outer_rim_max: float = 24.0
     central_gap_close: float = 2.0
     central_gap_max: float = 8.0
-    inner_buffer_fraction: float = 0.025
+    inner_rim_intensity: float = 0.12
+    inner_rim_fit_tolerance: float = 0.003
+    inner_rim_max_width: float = 0.012
+    inner_rim_min_support: float = 0.85
     background_radius: float = 12.0
     background_smooth: float = 4.0
     ridge_sigmas: tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)
@@ -45,7 +51,7 @@ class Config:
                 raise ValueError(f"{f.name} must be finite and positive")
         if not self.ridge_sigmas or any(not math.isfinite(s) or s <= 0 for s in self.ridge_sigmas):
             raise ValueError("ridge_sigmas must contain positive finite numbers")
-        for name in ("ridge_threshold", "intensity_floor", "blob_intensity", "inner_buffer_fraction", "rejection_warning", "sensitivity_warning"):
+        for name in ("ridge_threshold", "intensity_floor", "blob_intensity", "inner_rim_intensity", "inner_rim_fit_tolerance", "inner_rim_max_width", "inner_rim_min_support", "rejection_warning", "sensitivity_warning"):
             if getattr(self, name) >= 1:
                 raise ValueError(f"{name} must be less than 1")
         if self.central_gap_max < self.central_gap_close or self.outer_rim_max < self.outer_inset:

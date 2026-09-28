@@ -201,23 +201,6 @@ def test_gradually_widening_branch_is_not_cut():
     assert not np.any(rejected & branch)
 
 
-@pytest.mark.parametrize("irregular",[False,True])
-def test_fixed_inner_buffer_uses_euclidean_distance(irregular):
-    from scipy import ndimage as ndi
-    image,_,_=synthetic_scene(400)
-    config=Config(preview_size=400)
-    geometry=estimate_geometry(image.astype(np.float32)/255,image.shape,config)
-    yy,xx=np.mgrid[:400,:400]
-    opening=(xx-200)**2+(yy-200)**2 < 45**2
-    if irregular:
-        opening |= (xx-230)**2+(yy-188)**2 < 30**2
-    geometry.inner_mask=opening
-    region,_=tile_fields(geometry,image.shape,0,400,0,400,config)
-    outer=outer_region(xx,yy,geometry.center_x,geometry.center_y,geometry.radius_x,geometry.radius_y,geometry.angle,geometry.outer_cutoffs)
-    expected=outer & (ndi.distance_transform_edt(~opening)>geometry.diameter*.025)
-    np.testing.assert_array_equal(region,expected)
-    assert geometry.details["inner_buffer_px"] == geometry.diameter*.025
-
 
 def test_ring_only_has_zero_area_and_compact_outputs(tmp_path):
     yy,xx=np.mgrid[:400,:400]

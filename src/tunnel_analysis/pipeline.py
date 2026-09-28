@@ -49,7 +49,7 @@ def check_destinations(output, debug_dir=None, validation_dir=None):
 
 
 def manifest(results):
-    return {"format_version":2,"measurement":"visible foreground outside the buffered central opening and outer rim",
+    return {"format_version":3,"measurement_rule_version":"central-tunnels-v1","measurement":"visible tunnel foreground throughout the arena, excluding supported inner rim material and outer rim band",
             "results":results}
 
 
@@ -93,7 +93,7 @@ def run_image(path, output, config=None, sensitivity=True, progress=None,
                     "ridge_sigmas_px":[max(.7,s*scale) for s in config.ridge_sigmas],
                     "recovery_radius_px":max(1,config.recovery_radius*scale),
                     "width_inspection_radius_px":max(2,config.max_half_width*scale),
-                    "inner_buffer_px":config.inner_buffer_fraction*geometry.diameter,
+                    "inner_rim_max_width_px":config.inner_rim_max_width*geometry.diameter,
                     "min_component_area_px":max(2,config.min_component_area*scale*scale),
                     "intensity_threshold":geometry.threshold,"ridge_threshold":config.ridge_threshold}
                 with tempfile.TemporaryDirectory(prefix="tunnel-features-") as scratch:

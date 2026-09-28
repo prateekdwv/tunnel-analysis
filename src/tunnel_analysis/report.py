@@ -40,9 +40,8 @@ def save_overlay(path,preview,mask,candidates,region,result):
         draw.rectangle((x,64,x+16,80),fill=COLORS[key])
         draw.text((x+24,61),title,fill="white",font=small)
         x += 170
-    draw.text((16,94),"Display preview; exact native pixel masks are in audit.zip. Inner buffer = 2.5% of arena diameter."
-              if result["config"]["inner_buffer_fraction"] == .025 else
-              f"Display preview; exact masks in audit.zip. Inner buffer = {result['config']['inner_buffer_fraction']:.1%} of diameter.",fill=(205,210,220),font=small)
+    draw.text((16,94),"Display preview; exact masks in audit.zip. Centre included; supported rims excluded. Review centre.",
+              fill=(205,210,220),font=small)
     canvas.save(path)
     return accepted
 
@@ -125,7 +124,8 @@ def export_crops(out,image,preview,geometry,mask,candidates,region,source_hash,d
         "tunnels": np.where(usable & (density > .01),1-np.abs(density-.08),-1),
         "junctions": np.where(usable,junctions,-1),
         "debris": np.where(usable,rejection,-1),
-        "inner_rim": np.where(boundary & (radius_map < geometry.diameter*scale*.32),sc.astype(float)+preview,-1),
+        "inner_rim": (np.where(boundary & (radius_map < geometry.diameter*scale*.32),sc.astype(float)+preview,-1)
+                      if geometry.details["inner_rim_model"] else -radius_map),
         "outer_rim": np.where(boundary & (radius_map > geometry.diameter*scale*.4),sc.astype(float)+preview,-1),
         "background": np.where(usable,1-density-rejection,-1),
     }

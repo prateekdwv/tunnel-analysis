@@ -1,6 +1,34 @@
-# Validation report
+# Validation report: central-tunnels-v1
 
-Validated on 27 September 2026 using tunnel-analysis 0.2.0. All three supplied TIFFs were processed with the same frozen [configuration](config.json), including an inner buffer of **2.5% of the fitted arena diameter**. Biological measurements remain provisional pending independent expert masks.
+## Current implementation checks
+
+The revised rule includes the central interior, removes the blanket 2.5%-diameter buffer, and permits analysis when no supported inner rim is identified. A narrow smooth rim can be excluded only with strong angular foreground support; radial connections are protected. Both detected and unidentified rims require review. Outer geometry failure still fails the measurement.
+
+**49 tests passed in 16.16 seconds** in the local environment. Checks cover centre-crossing/central tunnels with absent and fragmented rims, an irregular central tunnel loop, a surviving rim with adjoining branches, a ring-only image with zero tunnel area, diameter scaling, native tile agreement, exact counts, determinism, unchanged inputs, overlays, batch recovery, and graph integrity. Two superseded buffer-shape tests were replaced with tests of the revised measurement definition; existing tunnel accuracy requirements were retained. Upstream SciPy/scikit-image deprecation warnings remain.
+
+The three existing synthetic scenes were rerun with all known tunnel pixels in the reference (including pixels previously removed by the central buffer). The results satisfy precision and recall >=95% and absolute relative area error <=5%. Full counts are in [central_tunnels_metrics.json](validation/central_tunnels_metrics.json).
+
+| Scene | Precision | Recall | Signed area error |
+|---|---:|---:|---:|
+| Clean | 96.82% | 99.51% | +2.774% |
+| Uneven illumination and noise | 96.58% | 99.51% | +3.032% |
+| Broad tunnels | 97.68% | 98.98% | +1.335% |
+
+These figures are synthetic segmentation checks, not evidence of biological accuracy. Shape alone cannot establish whether a smooth central curve is a rim or a tunnel. The detector deliberately leaves unsupported or irregular structures eligible for segmentation; this may retain unwanted rim remnants.
+
+## Biological validation still outstanding
+
+Preview-only geometry checks on the three local TIFFs (control, gal 80, and nsp3) produced `inner_rim_not_identified_review_centre` in all three. Thus the revised detector does **not** yet establish reliable removal of their biological rim material. No revised native-area measurement or segmentation overlay review was performed on them. Existing biological results were preserved.
+
+The user confirmed that the central rim was washed away in `NSP3, STAT RNAi.tif` and the remaining white lines are genuine tunnels. Only its failed display preview is available in this workspace; its original TIFF and the fourth image from the Drive batch are not available here. The new code removes the specific mandatory-opening failure, but segmentation of that original image has not been tested. It must remain provisional until reviewed.
+
+Before comparing samples, run all four together in a new run using the frozen revised configuration, inspect central accepted/rejected pixels and any rim exclusion, and record threshold sensitivity and runtime/memory from those new audits. An old completed run cannot be resumed to apply a changed measurement definition. Historical coverage values below use a different denominator and must not be mixed with revised values.
+
+---
+
+# Historical validation: buffered-centre rule (0.2.0)
+
+Validated on 27 September 2026 using tunnel-analysis 0.2.0. All three supplied TIFFs were processed with the same historical frozen configuration (stored in the original audits), including an inner buffer of **2.5% of the fitted arena diameter**. Biological measurements remain provisional pending independent expert masks.
 
 ## Implementation and synthetic checks
 

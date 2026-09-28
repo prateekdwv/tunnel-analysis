@@ -205,7 +205,7 @@ def segment(corrected, ridges, geometry, config, scratch, mask, candidate_output
     scale = geometry.diameter/1000
     recovery = max(1,config.recovery_radius*scale)
     width = max(2,config.max_half_width*scale)
-    halo = int(np.ceil(max(12*width+recovery,config.inner_buffer_fraction*geometry.diameter+8)))+4
+    halo = int(np.ceil(max(12*width+recovery,8)))+4
     for out,bounds,crop in tiles(corrected.shape,config.tile_size,halo):
         a,b,c,d = bounds
         native_gray = source.gray(slice(a,b),slice(c,d)) if source is not None else None

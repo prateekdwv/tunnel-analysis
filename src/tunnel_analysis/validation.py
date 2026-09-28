@@ -19,12 +19,8 @@ def audit_mask(folder,name="tunnels",image_index=0):
 
 
 def synthetic_reference(truth,config):
-    """Analytic ground-truth exclusion, independent of predicted geometry."""
-    size = truth.shape[0]
-    yy,xx = np.mgrid[:size,:size]
-    radius = np.hypot(xx-(size-1)/2,yy-(size-1)/2)
-    inner_cutoff = size*.115+config.inner_buffer_fraction*(2*size*.465)
-    return truth & (radius > inner_cutoff)
+    """All known tunnel pixels count; the central interior is measurable."""
+    return truth.copy()
 
 
 def binary_mask(path):

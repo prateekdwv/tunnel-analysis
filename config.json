@@ -5,7 +5,6 @@
   "outer_rim_max": 24.0,
   "central_gap_close": 2.0,
   "central_gap_max": 8.0,
-  "inner_buffer_fraction": 0.025,
   "background_radius": 12.0,
   "background_smooth": 4.0,
   "ridge_sigmas": [
@@ -27,5 +26,9 @@
   "min_elongation": 2.5,
   "min_network_extent": 35.0,
   "rejection_warning": 0.6,
-  "sensitivity_warning": 0.15
+  "sensitivity_warning": 0.15,
+  "inner_rim_intensity": 0.12,
+  "inner_rim_fit_tolerance": 0.003,
+  "inner_rim_max_width": 0.012,
+  "inner_rim_min_support": 0.85
 }
