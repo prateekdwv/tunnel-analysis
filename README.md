@@ -188,3 +188,23 @@ The graph uses Matplotlib, imported only during final batch assembly, and never 
 Historical CSVs cannot simply be redrawn under the new axis label: their percentages used different denominators. Start a new run with all comparison images to apply `arena-coverage-v1`; do not resume an earlier run for that purpose. Original runs remain untouched.
 
 The notebook defaults to `/content/drive/MyDrive/tunnel-quant/priority` for inputs and `/content/drive/MyDrive/tunnel-quant/Results` for new run folders.
+
+## Revise selected Drive images
+
+To restore the earlier central exclusion for an image with a confirmed opening:
+
+```bash
+tunnel-analysis revise /path/to/priority --from-run /path/to/Results/previous_run \
+  --output /path/to/Results/revised_run --image "NSP3 300 dpi.tif" \
+  --inner-exclusion opening-buffer
+```
+
+Repeat `--image` for multiple exact filenames. Only those source TIFFs are read and analyzed. The other measurements, masks and overlays are carried forward unchanged. The combined CSV and graph are rebuilt. The original run and all source images remain unchanged. Selected TIFF checksums must match the parent run; this command corrects analysis, not replacement source images.
+
+`opening-buffer` restores the detected central opening plus a Euclidean buffer of 2.5% of arena diameter, including branch portions inside that band. The overlay shows the excluded region in blue. The full-arena percentage denominator is unchanged. Other segmentation parameters and the parent's sensitivity setting are inherited. Default analysis remains `rim-only`; merely specifying `inner_buffer_fraction` does not enable the opening exclusion. A confirmed washed-away opening should retain `rim-only`.
+
+In Colab, set **REVISE_RUN** to the completed parent folder, **SELECTED_IMAGES** to exact filenames (one per line in the Python string, separated by `\n`), and enable **RESTORE_INNER_OPENING**. Leave **RESUME_RUN** empty initially. The notebook creates a new combined results folder. To resume an interrupted revision, enter that **new folder** in RESUME_RUN; the notebook restores the revision's code, environment, selection and settings.
+
+For the CLI, repeat the revision command with `--resume`. Failed selected images preserve checkpoints and prevent publication of a revised result; the original run stays intact. Missing or corrupt image checkpoints are rebuilt. Do not change settings or code while resuming. Earlier runs whose percentages use the reduced analysis region cannot be combined with full-arena measurements: run a new full batch once to establish a compatible baseline. Revisions require a completed batch with a verified audit.
+
+The audit records the parent audit checksum, selected filenames, per-image configurations, code and dependency identities. Carried records retain their original provenance; the new batch identity describes the revision/assembly environment.

@@ -146,12 +146,43 @@ def estimate_geometry(preview, native_shape, config, image=None):
     if np.mean(depths >= config.outer_rim_max*diameter/1000) > .1:
         flags.append("outer_rim_width_at_limit")
     arena = outer_region(xx,yy,cx,cy,a,b,angle,cutoffs)
-    # A dark central opening is optional. Only supported rim material is
-    # excluded; the centre remains eligible even when no rim survives.
-    rim, inner_details = detect_inner_rim(preview, arena, rad, cx, cy, diameter, config, fit_ellipse)
-    inner = rim_mask(xx, yy, rim)
-    region = arena & ~inner
-    flags.append("inner_rim_exclusion_requires_review" if rim else "inner_rim_not_identified_review_centre")
+    if config.inner_exclusion == "opening-buffer":
+        iy, ix = int(round(cy)), int(round(cx))
+        inner = None
+        for closing in np.arange(config.central_gap_close,config.central_gap_max+.001,config.central_gap_close):
+            close_radius = max(1,round(closing*diameter/1000))
+            barrier = morphology.closing(preview > .025,morphology.disk(close_radius))
+            labels,_ = ndi.label((~barrier)&arena)
+            seed_window = labels[max(0,iy-3):iy+4,max(0,ix-3):ix+4]
+            ids,counts = np.unique(seed_window[seed_window > 0],return_counts=True)
+            if not len(ids):
+                continue
+            proposed = labels == ids[np.argmax(counts)]
+            fraction = np.count_nonzero(proposed)/np.count_nonzero(arena)
+            if .015 < fraction < .35 and not np.any(proposed & (rad > .65)):
+                inner = proposed
+                break
+        if inner is None:
+            raise RegionError("Central opening is unbounded or implausible")
+        if closing > config.central_gap_close:
+            flags.append("central_boundary_required_gap_closing")
+        inner = ndi.binary_fill_holes(inner)
+        # The same geometric buffer applies to irregular and circular openings.
+        # Retain the bare opening separately for native-resolution refinement.
+        buffer_preview = config.inner_buffer_fraction*diameter
+        buffered_inner = ndi.distance_transform_edt(~inner) <= buffer_preview
+        region = arena & ~buffered_inner
+        inner_details = {"inner_rim_model": None, "central_opening_fraction": float(fraction),
+                         "central_interior_included": False,
+                         "central_gap_closing_px": float(close_radius*np.sqrt(sx*sy)),
+                         "inner_buffer_fraction": config.inner_buffer_fraction,
+                         "inner_buffer_px": float(config.inner_buffer_fraction*diameter*np.sqrt(sx*sy)),
+                         "inner_exclusion_rule": "opening plus fixed Euclidean buffer"}
+    else:
+        rim, inner_details = detect_inner_rim(preview, arena, rad, cx, cy, diameter, config, fit_ellipse)
+        inner = rim_mask(xx, yy, rim)
+        region = arena & ~inner
+        flags.append("inner_rim_exclusion_requires_review" if rim else "inner_rim_not_identified_review_centre")
     size = 2*max(1,round(config.background_radius*diameter/1000))+1
     # Separable square opening is O(N), unlike a large rank filter with a disk.
     background = ndi.grey_opening(preview, size=(size,size))
@@ -179,9 +210,19 @@ def tile_fields(geometry, native_shape, y0, y1, x0, x1, config, native_gray=None
     background = ndi.map_coordinates(geometry.background,coords,order=1,mode="nearest")
     if background_only:
         return None,background
-    # Evaluate the preview model at native pixel centres, independently of
-    # tile bounds. No filling or dilation of the central interior is applied.
-    inner = rim_mask(coords[1], coords[0], geometry.details["inner_rim_model"])
+    if config.inner_exclusion == "opening-buffer":
+        inner = ndi.map_coordinates(geometry.inner_mask.astype(np.uint8),coords,order=0,mode="nearest") > 0
+        if native_gray is not None:
+            # Refine the one-preview-pixel uncertainty band with native intensities.
+            # The opening interior remains excluded; dilation follows refinement.
+            width = max(1,int(np.ceil(max(native_shape[0]/ph,native_shape[1]/pw))))
+            core = ndi.minimum_filter(inner,size=2*width+1)
+            band = ndi.maximum_filter(inner,size=2*width+1)
+            inner = core | (band & (native_gray < .025))
+        if np.any(inner):
+            inner = ndi.distance_transform_edt(~inner) <= config.inner_buffer_fraction*geometry.diameter
+    else:
+        inner = rim_mask(coords[1], coords[0], geometry.details["inner_rim_model"])
     region = outer_region(xx,yy,geometry.center_x,geometry.center_y,geometry.radius_x,geometry.radius_y,geometry.angle,geometry.outer_cutoffs) & ~inner
     return region, background
 

@@ -81,11 +81,10 @@ def test_surviving_rim_keeps_central_and_adjoining_tunnels(tmp_path):
     assert np.all(audit_mask(tmp_path/'a')[truth])
 
 
-def test_obsolete_buffer_config_cannot_silently_change_measurement(tmp_path):
+def test_buffer_setting_does_not_enable_exclusion_without_explicit_mode(tmp_path):
     path = tmp_path/'old.json'
     path.write_text('{"inner_buffer_fraction": 0.025}')
-    with pytest.raises(ValueError, match='Unknown configuration'):
-        Config.read(path)
+    assert Config.read(path).inner_exclusion == "rim-only"
 
 
 def test_irregular_central_loop_is_not_assumed_to_be_rim(tmp_path):

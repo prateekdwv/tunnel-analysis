@@ -17,6 +17,8 @@ class Config:
     outer_rim_max: float = 24.0
     central_gap_close: float = 2.0
     central_gap_max: float = 8.0
+    inner_exclusion: str = "rim-only"
+    inner_buffer_fraction: float = 0.025
     inner_rim_intensity: float = 0.12
     inner_rim_fit_tolerance: float = 0.003
     inner_rim_max_width: float = 0.012
@@ -40,19 +42,21 @@ class Config:
     sensitivity_warning: float = 0.15
 
     def __post_init__(self):
+        if self.inner_exclusion not in ("rim-only", "opening-buffer"):
+            raise ValueError("inner_exclusion must be rim-only or opening-buffer")
         for name in ("preview_size", "tile_size"):
             v = getattr(self, name)
             if type(v) is not int or v < 64:
                 raise ValueError(f"{name} must be an integer >= 64")
         for f in fields(self):
-            if f.name in ("preview_size", "tile_size", "ridge_sigmas"):
+            if f.name in ("preview_size", "tile_size", "ridge_sigmas", "inner_exclusion"):
                 continue
             v = getattr(self, f.name)
             if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v <= 0:
                 raise ValueError(f"{f.name} must be finite and positive")
         if not self.ridge_sigmas or any(not math.isfinite(s) or s <= 0 for s in self.ridge_sigmas):
             raise ValueError("ridge_sigmas must contain positive finite numbers")
-        for name in ("arena_missing_fraction_warning", "ridge_threshold", "intensity_floor", "blob_intensity", "inner_rim_intensity", "inner_rim_fit_tolerance", "inner_rim_max_width", "inner_rim_min_support", "rejection_warning", "sensitivity_warning"):
+        for name in ("inner_buffer_fraction", "arena_missing_fraction_warning", "ridge_threshold", "intensity_floor", "blob_intensity", "inner_rim_intensity", "inner_rim_fit_tolerance", "inner_rim_max_width", "inner_rim_min_support", "rejection_warning", "sensitivity_warning"):
             if getattr(self, name) >= 1:
                 raise ValueError(f"{name} must be less than 1")
         if self.central_gap_max < self.central_gap_close or self.outer_rim_max < self.outer_inset:

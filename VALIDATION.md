@@ -1,3 +1,19 @@
+# Selected-image revision and restored inner exclusion
+
+The explicit `opening-buffer` option restores the historical central opening detector, native intensity refinement, and 2.5%-diameter Euclidean buffer. Default `rim-only` analysis, other segmentation rules, the full-arena denominator, and graph design are retained.
+
+Validation completed locally:
+
+- Full suite: **70 passed in 29.68 seconds**. After adding ring-only and CLI checks and completing resume cleanup, the affected opening/revision suite passed **10 tests in 7.58 seconds** (72 distinct tests total). Upstream SciPy/scikit-image deprecation warnings remain.
+- On the local `nsp3 300 dpi.tif`, the restored opening mask and buffered preview region exactly matched the detector from commit `0b12ec3`, using the current shared outer ellipse fitter for both. Three 1,024×1,024 native tiles at (y,x)=(2800,2800), (3500,3500), and (4200,3500) also matched exactly. The buffer was 197.41976345936283 native pixels, and the detected opening occupied 0.0468653081853477 of the trimmed arena. This checks the restored exclusion, not a new full biological segmentation.
+- Synthetic checks cover circular and irregular openings, historical mask equivalence, exclusion of the central interior, unchanged full-arena denominator, native segmentation tile agreement, exact pixel counts, failed missing-opening detection, and zero measured area for an excluded-ring-only image.
+- Revision checks cover exact filenames with spaces, multiple selections, interruption/resume, corrupt/missing checkpoints, changed sources/selections, selected-image failure and retry, denominator incompatibility, overwrite refusal, checkpoint cleanup, and the CLI and notebook command paths.
+- Unselected records are identical to their parent records; overlay and archived native-mask bytes are preserved. Parent result files and source TIFFs remain unchanged. Existing graph, overlay and CSV consistency tests pass.
+
+Hosted Colab authorization and Drive execution have not been performed for this change. Independently validated biological accuracy remains unavailable. An explicit opening-and-buffer exclusion also removes genuine branch portions within that region, as did the historical rule. The user must select this mode only for images with a confirmed opening. Older analysis-region-denominator runs require a new compatible baseline, not selective merging.
+
+---
+
 # Validation report: arena-coverage-v1
 
 ## Current changes

@@ -49,7 +49,7 @@ def check_destinations(output, debug_dir=None, validation_dir=None):
 
 
 def manifest(results):
-    return {"format_version":4,"measurement_rule_version":"arena-coverage-v1","measurement":"visible tunnel foreground throughout the arena, excluding supported inner rim material and outer rim band; coverage denominator is the fitted arena within the image",
+    return {"format_version":4,"measurement_rule_version":"arena-coverage-v1","measurement":"visible tunnel foreground with per-image inner exclusion recorded in config and geometry, and outer rim band excluded; coverage denominator is the fitted arena within the image",
             "results":results}
 
 

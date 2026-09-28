@@ -76,3 +76,25 @@ def test_notebook_reads_saved_identity_from_state_or_final_audit(tmp_path):
     with zipfile.ZipFile(output/'audit.zip','w') as archive:
         archive.writestr('run.json',json.dumps({'batch':metadata}))
     assert read(output)==metadata
+
+
+def test_notebook_revision_command_and_resume(tmp_path):
+    notebook=json.loads(NOTEBOOK.read_text())
+    code=''.join(notebook['cells'][4]['source'])
+    calls=[]
+    class Runner:
+        @staticmethod
+        def run(command, check=False):
+            calls.append(command)
+            return type('Completed', (), {'returncode':0})()
+    namespace=dict(LOCAL_ROOT=tmp_path, PARENT_RUN='/drive/results/parent',
+                   PYTHON=Path('/python'), SOURCE_DIRECTORY=Path('/drive/photos'),
+                   RUN_DIRECTORY=Path('/drive/results/new'), INNER_EXCLUSION='opening-buffer',
+                   SELECTED_NAMES=['NSP3 300 dpi.tif','another image.tiff'],
+                   resume_metadata={'revision':{}}, subprocess=Runner)
+    exec(compile(code,str(NOTEBOOK),'exec'),namespace)
+    command=calls[0]
+    assert 'revise' in command and 'batch' not in command
+    assert command.count('--image')==2
+    assert '--resume' in command
+    assert command[command.index('--from-run')+1]=='/drive/results/parent'

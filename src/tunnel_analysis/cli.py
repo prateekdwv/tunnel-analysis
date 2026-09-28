@@ -12,6 +12,8 @@ from .config import Config
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "revise":
+        return revision_command(argv[1:])
     if argv and argv[0] == "batch":
         return batch_command(argv[1:])
     if argv and argv[0] in ("compare","validate-crops","synthetic","write-config"):
@@ -155,3 +157,26 @@ def utility(argv):
     except (ValueError,OSError) as exc:
         print(f"Error: {exc}",file=sys.stderr)
         return 2
+
+
+def revision_command(argv):
+    parser = argparse.ArgumentParser(prog="tunnel-analysis revise")
+    parser.add_argument("input", type=Path)
+    parser.add_argument("--from-run", required=True, type=Path)
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--image", action="append", required=True)
+    parser.add_argument("--inner-exclusion", choices=("opening-buffer", "rim-only"), default="opening-buffer")
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--scratch-dir", type=Path)
+    args = parser.parse_args(argv)
+    try:
+        from .revision import run_revision
+        result = run_revision(args.input, args.from_run, args.output, args.image,
+                              args.inner_exclusion, args.resume, args.scratch_dir)
+        return 2 if result['batch']['status'] == 'complete_with_failures' else 0
+    except (ValueError, OSError, KeyError, zipfile.BadZipFile) as exc:
+        print(f"Revision error: {exc}", file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:
+        print("Revision interrupted; checkpoints preserved. Use revise --resume.", file=sys.stderr)
+        return 130

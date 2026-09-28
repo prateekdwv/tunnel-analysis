@@ -4,7 +4,7 @@
 
 The measured quantity is the number of native-resolution pixels occupied by accepted visible bright tunnel material within a defined analysis region. Branches, loops, and junctions count throughout the arena, including the central interior. Dark gaps between tunnel walls, rejected debris, supported inner-rim material, and outer rim bands do not count. All observed pixels within the fitted arena, including dark central pixels and artifact locations, remain in the coverage denominator. Rejected artifacts and dark pixels contribute no tunnel area. This quantity does not measure tunnel length, lumen area, excavated volume, or physical area without independent calibration.
 
-The procedure is automatic and deterministic. The shared settings in `config.json` apply to all images. Independent biological reference masks have not yet been supplied; results remain provisional. [VALIDATION.md](VALIDATION.md) records synthetic accuracy, real-image checks, sensitivity, and performance.
+The processing is deterministic. The shared settings in `config.json` apply by default; reviewed images can explicitly use the restored opening-and-buffer exclusion described below. Independent biological reference masks have not yet been supplied; results remain provisional. [VALIDATION.md](VALIDATION.md) records synthetic accuracy, real-image checks, sensitivity, and performance.
 
 ## Inputs, intensity, and scale
 
@@ -121,3 +121,11 @@ Add actual expert-validation results and physical calibration only after those s
 ## Figure export
 
 The batch comparison shows a horizontal bar per image with a zero-based linear percentage axis. Matplotlib renders a 7.1-inch-wide, 300-dpi PNG and an editable SVG archived under `figures/`. Font size and figure height are chosen for readable labels. Failed/invalid values and flagged cropped arenas have labeled rows without bars. Exact plotting values, axis limits, original filenames and simplified display labels, and a draft caption are archived. PNG and SVG checksums are verified at completion/resume. No pixel-area panel, replicate confidence intervals, or significance tests are displayed. The CSV records the rule identifier `arena-coverage-v1` to prevent old percentages being mislabeled as full-arena coverage.
+
+## Explicit restoration of an inner opening
+
+For an image confirmed to contain a central opening, `inner_exclusion="opening-buffer"` restores the earlier rule. Threshold the preview at 0.025 and close with disks of radius 2, 4, 6, then 8 pixels per 1,000 arena diameter pixels. Select the most frequent nonzero dark-component label in the 7×7 window about the fitted centre. Accept the first component occupying 1.5–35% of the outer-band-trimmed arena and confined to normalized arena radius ≤0.65. Fill holes in this opening mask. If no component qualifies, fail the image rather than assume the rim is absent.
+
+At native resolution, nearest-neighbour sampling transfers the opening mask. Refine its one-preview-pixel uncertainty band using native intensities below 0.025, retaining the eroded core. Exclude the refined opening and pixels with Euclidean distance ≤0.025D from it. This geometric exclusion removes any tunnel portions within the buffer as well as rim artifacts; it does not claim to distinguish their biology. The full fitted arena denominator remains unchanged. The existing default `rim-only` treatment continues to allow genuine central tunnels where the opening has washed away.
+
+Selected-image revisions inherit all other per-image settings and sensitivity checks. Unselected records and mask/overlay contents are retained, and the combined descriptive graph is regenerated. Parent-run checksums and per-image settings and software identities document this deliberate difference in exclusion policy. Cross-image comparisons require review of these policies; independently annotated reference masks are still needed for biological validation.
