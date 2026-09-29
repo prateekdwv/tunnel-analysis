@@ -21,7 +21,7 @@ def display_labels(names):
     return labels if len(set(labels)) == len(labels) else names
 
 
-def read_measurements(csv_path):
+def read_measurements(csv_path, rule=RULE):
     """Only graph the new denominator; never relabel historical percentages."""
     with open(csv_path, newline='', encoding='utf-8') as stream:
         rows = list(csv.DictReader(stream))
@@ -32,8 +32,8 @@ def read_measurements(csv_path):
         row['plot_status'] = 'Failed' if row['status'] == 'failed' else 'Invalid measurement'
         if row['status'] == 'failed':
             continue
-        if row.get('measurement_rule_version') != RULE:
-            raise ValueError('Comparison requires arena-coverage-v1 results; rerun historical images with the new denominator')
+        if row.get('measurement_rule_version') != rule:
+            raise ValueError(f'Comparison requires {rule} results; rerun historical images instead of mixing measurement definitions')
         try:
             value = float(row['tunnel_area_percent'])
         except (ValueError, TypeError, KeyError):
@@ -111,10 +111,10 @@ def create_figure(rows):
     return figure
 
 
-def save_comparison(csv_path, output, svg_path=None):
+def save_comparison(csv_path, output, svg_path=None, *, rule=RULE):
     """Save a 300-dpi PNG and optional editable SVG, returning audit metadata."""
     import matplotlib
-    rows = read_measurements(csv_path)
+    rows = read_measurements(csv_path, rule)
     settings = {'font.family': 'DejaVu Sans', 'font.size': 10, 'text.color': '#1F2937',
                 'axes.labelcolor': '#374151', 'svg.fonttype': 'none',
                 'svg.hashsalt': RULE, 'text.usetex': False, 'text.parse_math': False}
@@ -129,7 +129,7 @@ def save_comparison(csv_path, output, svg_path=None):
             inches = list(figure.get_size_inches())
         finally:
             figure.clear()
-    return {'measurement_rule_version': RULE, 'matplotlib_version': matplotlib.__version__,
+    return {'measurement_rule_version': rule, 'matplotlib_version': matplotlib.__version__,
             'dpi': 300, 'size_inches': inches, 'x_limits_percent': xlim,
             'color': BAR_COLOR, 'source': 'results.csv',
             'rows': [{'image': row['image'], 'label': row['label'], 'coverage_percent': row['coverage'],

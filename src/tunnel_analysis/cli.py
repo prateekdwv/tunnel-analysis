@@ -12,6 +12,18 @@ from .config import Config
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == 'aggregate-reviewed':
+        parser = argparse.ArgumentParser(prog='tunnel-analysis aggregate-reviewed')
+        parser.add_argument('runs', nargs='+', type=Path)
+        parser.add_argument('--output', required=True, type=Path)
+        args = parser.parse_args(argv[1:])
+        try:
+            from .editor import aggregate_reviewed
+            print(aggregate_reviewed(args.runs, args.output))
+            return 0
+        except (ValueError, OSError, KeyError, zipfile.BadZipFile) as exc:
+            print(f'Aggregation error: {exc}', file=sys.stderr)
+            return 2
     if argv and argv[0] == "revise":
         return revision_command(argv[1:])
     if argv and argv[0] == "batch":

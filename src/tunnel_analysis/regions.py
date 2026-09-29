@@ -210,6 +210,10 @@ def tile_fields(geometry, native_shape, y0, y1, x0, x1, config, native_gray=None
     background = ndi.map_coordinates(geometry.background,coords,order=1,mode="nearest")
     if background_only:
         return None,background
+    if 'notebook_boundaries' in geometry.details:
+        from .editor_geometry import Boundaries
+        _, region = Boundaries.from_dict(geometry.details['notebook_boundaries']).masks(y0, y1, x0, x1)
+        return region, background
     if config.inner_exclusion == "opening-buffer":
         inner = ndi.map_coordinates(geometry.inner_mask.astype(np.uint8),coords,order=0,mode="nearest") > 0
         if native_gray is not None:

@@ -11,6 +11,7 @@ dependencies = ["numpy>=1.26", "scipy>=1.12", "scikit-image>=0.24", "tifffile>=2
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
+notebook = ["stackview==0.19.1", "ipympl>=0.9.8,<0.10", "ipywidgets>=8.1,<9"]
 
 [project.scripts]
 tunnel-analysis = "tunnel_analysis.cli:main"

@@ -2,6 +2,12 @@
 
 Measure visible white tunnel-network area in TIFF images, with one shared automatic workflow. Branches and junctions count, including genuine tunnels near the centre. Debris, supported smooth inner-rim material, and the outer rim are excluded. Dark spaces between tunnel walls remain uncounted.
 
+## Review and correct one image in a notebook
+
+The new [mask editor notebook](notebooks/Google_Drive_Mask_Editor.ipynb) uses Stackview brushes and adjustable Matplotlib ellipses. Select one TIFF, confirm boundaries, run the existing detector, then paint/erase native pixels and save reviewed results. Applied crop patches are saved to Drive for resuming without repeating segmentation.
+
+See [the editor guide](NOTEBOOK_EDITOR.md) for setup, precise boundary controls, saving and separate comparison graphs. **Live Colab interaction testing is pending**; use the notebook's real-image brush demo before a long run. This workflow lives on `feature/notebook-mask-editor` and requires that branch to be pushed before its Colab link works. The older batch workflow below is unchanged.
+
 ## Keep developing here; run on Google Drive when ready
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/prateekdwv/tunnel-analysis/blob/main/notebooks/Google_Drive_Analysis.ipynb)

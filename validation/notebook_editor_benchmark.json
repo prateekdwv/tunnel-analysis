@@ -1,0 +1,43 @@
+{
+  "source": "nsp3 300 dpi.tif",
+  "shape": [
+    7917,
+    7917
+  ],
+  "source_sha256": "f05eabbc021e5ddcda309d584a08f784f1dda33fc1428d2bd8cf7c210b92f041",
+  "purpose": "Performance only; suggested boundaries, no expert review",
+  "environment": {
+    "source_code_sha256": "d51f3760e9932b07119abf7cafd0b51cfaec6661982ee066576f8368ba7e57e0",
+    "git_commit": "11d03a0b855887ae181297cd4d3a45670d3a6f05",
+    "versions": {
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "scikit-image": "0.26.0",
+      "tifffile": "2026.9.20",
+      "pillow": "12.3.0",
+      "matplotlib": "3.11.2",
+      "stackview": "0.19.1",
+      "ipympl": "0.9.8",
+      "ipywidgets": "8.1.9",
+      "ipycanvas": "0.14.3",
+      "ipyevents": "2.0.4"
+    },
+    "python": "3.14.2"
+  },
+  "analysis": {
+    "runtime_seconds": 224.731741649,
+    "peak_memory_mib": 771.59375,
+    "memory_measurement": "kernel process peak RSS; includes earlier notebook work"
+  },
+  "total_to_saved_automatic_seconds": 240.07663211199997,
+  "simulated_stroke_kernel_seconds": {
+    "median": 0.14058576249999533,
+    "max": 0.235809080999843,
+    "note": "No browser connected; excludes rendering/network latency. 1024-square native crop."
+  },
+  "apply_checkpoint_seconds": 0.08562775300015346,
+  "drive_object_bytes_local_simulation": 1014514,
+  "host": "VS Code Codespace; local disk standing in for Drive; one CPU thread for BLAS",
+  "sensitivity_enabled": false,
+  "colab_browser_validated": false
+}

@@ -1,3 +1,30 @@
+# Notebook mask editor (2026-09-29)
+
+The new optional workflow uses Stackview 0.19.1 for pixel edits and Matplotlib/ipympl for manually confirmed ellipses. The existing batch commands remain compatible. **Hosted Colab interaction has not been tested.** Run the notebook's real-image brush demo before using this workflow for measurements.
+
+Local validation:
+
+- Full suite: **90 passed in 38.01 seconds**, including 18 new editor tests. Coverage includes one-pixel clicks, stroke separation, erasure, clipping at image/crop edges, exclusion protection, undo, overlapping crops, source preservation, immutable export, corrupt/missing checkpoints, interrupted uploads, environment mismatch, boundary invalidation, deterministic/tiled segmentation, mask recounting and notebook syntax.
+- Actual Stackview callback handlers were exercised with simulated pointer events. Nearest-neighbour 4× display coordinates were checked against exact repeated native pixels. These tests do not measure browser event delivery or visual responsiveness.
+- Boundary widgets were instantiated with ipympl and tested for numeric rotation beyond the selector's ±45° range, equivalent axis swapping, native edge views, and confirmation. Upstream SciPy and ipympl/traitlets deprecation warnings remain.
+
+Largest local TIFF benchmark, `nsp3 300 dpi.tif` (7,917 × 7,917):
+
+| Measurement | Local result |
+|---|---:|
+| Automatic filtering/segmentation, sensitivity off | 224.73 s |
+| Open image through verified automatic checkpoint | 240.08 s |
+| Process peak RSS reported at end of segmentation | 771.59 MiB |
+| Simulated stroke handler, median / maximum (1,024² crop) | 0.141 / 0.236 s |
+| Apply edited crop and verify local checkpoint | 0.086 s |
+| Compressed draft objects after editing | 1,014,514 bytes |
+
+Benchmark details and software identities are in [notebook_editor_benchmark.json](validation/notebook_editor_benchmark.json). This was a performance run with suggested outer boundaries and no expert review. Local directories stood in for Drive; pointer events ran without a browser, so the timings exclude network latency and browser rendering. BLAS was restricted to one thread. The original detector still dominates the first run; no segmentation speedup is claimed. Reopening a matching saved draft bypasses it. Subsequent lifecycle/display-size fixes do not change the detector.
+
+Pending acceptance: live Colab paint/erase alignment, ellipse dragging and rotation, native boundary inspection, full browser responsiveness, disconnect/reopen with mounted Drive, and expert review of corrected biological masks. Output status remains `reviewed_provisional`.
+
+---
+
 # Selected-image revision and restored inner exclusion
 
 The explicit `opening-buffer` option restores the historical central opening detector, native intensity refinement, and 2.5%-diameter Euclidean buffer. Default `rim-only` analysis, other segmentation rules, the full-arena denominator, and graph design are retained.
